@@ -31,6 +31,12 @@ import java.lang.SecurityException;
 import java.text.SimpleDateFormat;
 import java.text.ParseException;
 
+// Android 13+ compatibility imports
+import android.Manifest;
+import android.content.pm.PackageManager;
+import android.os.Build;
+import androidx.core.content.ContextCompat;
+
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.Callback;
 import com.facebook.react.bridge.NativeModule;
@@ -105,7 +111,10 @@ public class RNDataWedgeIntentsModule extends ReactContextBaseJavaModule impleme
 
         IntentFilter filter = new IntentFilter();
         filter.addAction(ACTION_ENUMERATEDLISET);
-        reactContext.registerReceiver(myEnumerateScannersBroadcastReceiver, filter);
+        
+        // Use helper method for Android 13+ compatibility
+        registerReceiverWithCompatibility(myEnumerateScannersBroadcastReceiver, filter);
+        
 	    if (this.registeredAction != null)
           registerReceiver(this.registeredAction, this.registeredCategory);
           
@@ -216,6 +225,24 @@ public class RNDataWedgeIntentsModule extends ReactContextBaseJavaModule impleme
             }
         }
         this.reactContext.sendBroadcast(i);    
+    }
+
+    @ReactMethod
+    public void checkAndroid13Permissions(Callback callback) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            boolean hasNotificationPermission = ContextCompat.checkSelfPermission(reactContext, 
+                Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED;
+            
+            WritableMap result = new WritableNativeMap();
+            result.putBoolean("hasNotificationPermission", hasNotificationPermission);
+            result.putBoolean("isAndroid13Plus", true);
+            callback.invoke(result);
+        } else {
+            WritableMap result = new WritableNativeMap();
+            result.putBoolean("hasNotificationPermission", true);
+            result.putBoolean("isAndroid13Plus", false);
+            callback.invoke(result);
+        }
     }
 
     //  Credit: https://github.com/facebook/react-native/issues/4655
@@ -357,7 +384,9 @@ public class RNDataWedgeIntentsModule extends ReactContextBaseJavaModule impleme
         filter.addAction(action);
         if (category != null && category.length() > 0)
           filter.addCategory(category);
-        this.reactContext.registerReceiver(scannedDataBroadcastReceiver, filter);
+        
+        // Use helper method for Android 13+ compatibility
+        registerReceiverWithCompatibility(scannedDataBroadcastReceiver, filter);
     }
 
     @ReactMethod
@@ -389,7 +418,9 @@ public class RNDataWedgeIntentsModule extends ReactContextBaseJavaModule impleme
                 }
             }
         }
-        this.reactContext.registerReceiver(genericReceiver, filter);
+        
+        // Use helper method for Android 13+ compatibility
+        registerReceiverWithCompatibility(genericReceiver, filter);
     }
 
     private void unregisterReceivers() {
@@ -506,5 +537,27 @@ public class RNDataWedgeIntentsModule extends ReactContextBaseJavaModule impleme
           scanData.putString("labelType", decodedLabelType);
           sendEvent(this.reactContext, "barcode_scan", scanData);
       }
+    }
+
+    // Android 13+ compatibility helper method
+    private boolean hasRequiredPermissions() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            // Check for POST_NOTIFICATIONS permission on Android 13+
+            return ContextCompat.checkSelfPermission(reactContext, 
+                Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED;
+        }
+        return true;
+    }
+
+    // Helper method to register receiver with Android 13+ compatibility
+    private void registerReceiverWithCompatibility(BroadcastReceiver receiver, IntentFilter filter) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            // For Android 13+, use RECEIVER_EXPORTED flag for cross-package broadcasts
+            this.reactContext.registerReceiver(receiver, filter, 
+                ContextCompat.RECEIVER_EXPORTED);
+        } else {
+            // For older versions, use standard registration
+            this.reactContext.registerReceiver(receiver, filter);
+        }
     }
 }

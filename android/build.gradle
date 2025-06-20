@@ -5,14 +5,12 @@ def safeExtGet(prop, fallback) {
 apply plugin: 'com.android.library'
 
 android {
-    compileSdkVersion safeExtGet('compileSdkVersion', 27)
-    //noinspection GradleDependency
-    buildToolsVersion safeExtGet('buildToolsVersion', '27.0.3')
+    compileSdkVersion safeExtGet('compileSdkVersion', 34)
+    buildToolsVersion safeExtGet('buildToolsVersion', '34.0.0')
 
     defaultConfig {
-        minSdkVersion safeExtGet('minSdkVersion', 16)
-        //noinspection OldTargetApi
-        targetSdkVersion safeExtGet('targetSdkVersion', 27)
+        minSdkVersion safeExtGet('minSdkVersion', 21)
+        targetSdkVersion safeExtGet('targetSdkVersion', 34)
         versionCode 7
         versionName "0.0.1"
     }
@@ -20,5 +18,7 @@ android {
 
 dependencies {
     implementation 'com.facebook.react:react-native:+'
+    // Android 13+ compatibility
+    implementation 'androidx.core:core:1.10.0'
 }
 
